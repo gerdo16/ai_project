@@ -3,6 +3,7 @@
  */
 package scr;
 
+import java.io.IOException;
 import java.util.StringTokenizer;
 import scr.Controller.Stage;
 
@@ -34,10 +35,12 @@ public class Client {
 	 *             - trackName:nome viene utilizzato per impostare il nome della pista attuale.
 	 */
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		parseParameters(args);
 		SocketHandler mySocket = new SocketHandler(host, port, verbose);
 		String inMsg;
+		// FILE PER IL SALVATAGGIO DEL DATASET
+		FileService fs = new FileService("dataset.csv");
 
 		Controller driver = load(args[0]);
 		driver.setStage(stage);
@@ -100,6 +103,9 @@ public class Client {
 						action = driver.control(new MessageBasedSensorModel(inMsg));
 					else
 						action.restartRace = true;
+
+					// MIA IMPLEMENTAZIONE MOMENTANEA (GERARDO)
+					fs.save(new MessageBasedSensorModel(inMsg), action);
 
 					currStep++;
 					mySocket.send(action.toString());
