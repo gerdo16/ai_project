@@ -36,13 +36,20 @@ public class Client {
 	 */
 
 	public static void main(String[] args) throws IOException {
+
+		if (args.length < 4){
+			System.out.println("Numero di parametri insufficiente.");
+			System.exit(1);
+		}
+
 		parseParameters(args);
 		SocketHandler mySocket = new SocketHandler(host, port, verbose);
 		String inMsg;
 		// FILE PER IL SALVATAGGIO DEL DATASET
-		FileService fs = new FileService("dataset.csv");
+		//FileService fs = new FileService("dataset.csv");
 
-		Controller driver = load(args[0]);
+		String mode = args.length > 4 ? args[4] : null;
+		Controller driver = load(args[0], mode);
 		driver.setStage(stage);
 		driver.setTrackName(trackName);
 
@@ -105,7 +112,7 @@ public class Client {
 						action.restartRace = true;
 
 					// MIA IMPLEMENTAZIONE MOMENTANEA (GERARDO)
-					fs.save(new MessageBasedSensorModel(inMsg), action);
+					//fs.save(new MessageBasedSensorModel(inMsg), action);
 
 					currStep++;
 					mySocket.send(action.toString());
@@ -187,10 +194,16 @@ public class Client {
 		}
 	}
 
-	private static Controller load(String name) {
+	private static Controller load(String name, String mode) {
 		Controller controller = null;
 		try {
-			controller = (Controller) (Object) Class.forName(name).newInstance();
+			if(name.equals("scr.SimpleDriver")){
+				controller = new SimpleDriver(mode);
+			}
+			else{
+				controller = (Controller) (Object) Class.forName(name).newInstance();
+			}
+
 		} catch (ClassNotFoundException e) {
 			System.out.println(name + " is not a class name");
 			System.exit(0);

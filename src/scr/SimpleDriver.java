@@ -37,12 +37,36 @@ public class SimpleDriver extends Controller {
 	final float clutchMaxModifier = (float) 1.3;
 	final float clutchMaxTime = (float) 1.5;
 
+	/* Attributi aggiunti */
+	private final boolean addestramento;
+	private final boolean guidaAutonoma;
+	public Action azione;
+	public boolean registra;
 
 
 	private int stuck = 0;
-
 	// current clutch
 	private float clutch = 0;
+
+
+	//COSTRUTTORE
+	public SimpleDriver(String mode){
+		this.azione = new Action();
+		this.registra = false;
+
+		if(mode != null && (mode.equals("T") || mode.equals("t"))) {
+			this.addestramento = true;
+			this.guidaAutonoma = false;
+		}
+		else{
+			this.addestramento = false;
+			this.guidaAutonoma = true;
+		}
+
+
+
+	}
+
 
 	public void reset() {
 		System.out.println("Restarting the race!");
