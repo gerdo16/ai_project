@@ -14,52 +14,27 @@ public class FileService {
     }
 
 
-    public void save(SensorModel sm, Action a) throws IOException{
+    public void saveCSV(SensorModel data) throws IOException{
 
         try(PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(this.fileName)))){
-
+            
             // Dati dei sensori
-            pw.append(String.valueOf(sm.getSpeed()));
+            pw.append(String.valueOf(data.getSpeed()));
             pw.append("|");
-            pw.append(String.valueOf(sm.getAngleToTrackAxis()));
+            pw.append(String.valueOf(data.getAngleToTrackAxis()));
             pw.append("|");
-            pw.append(Arrays.toString(sm.getTrackEdgeSensors()));
+            pw.append(String.valueOf(data.getTrackEdgeSensors()[0]));
             pw.append("|");
-            pw.append(String.valueOf(sm.getFocusSensors()));
+            pw.append(String.valueOf(data.getTrackEdgeSensors()[9]));
             pw.append("|");
-            pw.append(String.valueOf(sm.getTrackPosition()));
+            pw.append(String.valueOf(data.getTrackEdgeSensors()[18]));
             pw.append("|");
-            pw.append(String.valueOf(sm.getGear()));
+            pw.append(String.valueOf(data.getTrackPosition()));
             pw.append("|");
-            pw.append(String.valueOf(sm.getLateralSpeed()));
+            pw.append(String.valueOf(data.getLateralSpeed()));
             pw.append("|");
-            pw.append(String.valueOf(sm.getCurrentLapTime()));
+            pw.append(String.valueOf(data.getDamage()));
             pw.append("|");
-            pw.append(String.valueOf(sm.getDamage()));
-            pw.append("|");
-            pw.append(String.valueOf(sm.getDistanceFromStartLine()));
-            pw.append("|");
-            pw.append(String.valueOf(sm.getDistanceRaced()));
-            pw.append("|");
-            pw.append(String.valueOf(sm.getLastLapTime()));
-            pw.append("|");
-            pw.append(String.valueOf(sm.getRPM()));
-            pw.append("|");
-            pw.append(String.valueOf(sm.getWheelSpinVelocity()));
-            pw.append("|");
-
-            // Dati degli attuatori
-            pw.append(String.valueOf(a.accelerate));
-            pw.append("|");
-            pw.append(String.valueOf(a.brake));
-            pw.append("|");
-            pw.append(String.valueOf(a.clutch));
-            pw.append("|");
-            pw.append(String.valueOf(a.gear));
-            pw.append("|");
-            pw.append(String.valueOf(a.steering));
-            pw.append("\n");
-
 
         }
         finally{

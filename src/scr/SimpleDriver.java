@@ -1,5 +1,12 @@
 package scr;
 
+import javax.swing.*;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Scanner;
+
 public class SimpleDriver extends Controller {
 
 	/* Costanti di cambio marcia */
@@ -42,7 +49,19 @@ public class SimpleDriver extends Controller {
 	private final boolean guidaAutonoma;
 	public Action azione;
 	public boolean registra;
+	private final String fileName;
 
+	/* Valori massimi e minimi */
+	private final double maxVel = 310;
+	private final double minVel = 0;
+	private final double maxRetro = -0.01;
+	private final double minRetro = -60;
+	private final double maxTrackEdgeSensor = 200;
+	private final double minTrackEdgeSensor = -1;
+	private final double maxAngle = Math.PI;
+	private final double minAngle = -Math.PI;
+	private final double minTrackPosition = -2;
+	private final double maxTrackPosition = 2;
 
 	private int stuck = 0;
 	// current clutch
@@ -53,6 +72,7 @@ public class SimpleDriver extends Controller {
 	public SimpleDriver(String mode){
 		this.azione = new Action();
 		this.registra = false;
+		this.fileName = "training_data.csv";
 
 		if(mode != null && (mode.equals("T") || mode.equals("t"))) {
 			this.addestramento = true;
@@ -63,8 +83,8 @@ public class SimpleDriver extends Controller {
 			this.guidaAutonoma = true;
 		}
 
-
-
+		if(this.addestramento)
+			SwingUtilities.invokeLater(() -> new KeyListener(this));
 	}
 
 
@@ -163,93 +183,19 @@ public class SimpleDriver extends Controller {
 	}
 
 	public Action control(SensorModel sensors) {
-		// Controlla se l'auto è attualmente bloccata
-		/**
-			Se l'auto ha un angolo, rispetto alla traccia, superiore a 30°
-			incrementa "stuck" che è una variabile che indica per quanti cicli l'auto è in
-			condizione di difficoltà.
-			Quando l'angolo si riduce, "stuck" viene riportata a 0 per indicare che l'auto è
-			uscita dalla situaizone di difficoltà
-		 **/
-		if (Math.abs(sensors.getAngleToTrackAxis()) > stuckAngle) {
-			// update stuck counter
-			stuck++;
-		} else {
-			// if not stuck reset stuck counter
-			stuck = 0;
+
+		if(addestramento){
+            try {
+                this.saveCSV(sensors);
+            } catch (IOException e) {
+				System.out.println("Errore di input/output");
+            }
+        }
+		else if(guidaAutonoma){
+
 		}
 
-		// Applicare la polizza di recupero o meno in base al tempo trascorso
-		/**
-		Se "stuck" è superiore a 25 (stuckTime) allora procedi a entrare in situaizone di RECOVERY
-		per far fronte alla situazione di difficoltà
-		 **/
-
-		if (stuck > stuckTime) { //Auto Bloccata
-			/**
-			 * Impostare la marcia e il comando di sterzata supponendo che l'auto stia puntando
-			 * in una direzione al di fuori di pista
-			 **/
-
-			// Per portare la macchina parallela all'asse TrackPos
-			float steer = (float) (-sensors.getAngleToTrackAxis() / steerLock);
-			int gear = -1; // Retromarcia
-
-			// Se l'auto è orientata nella direzione corretta invertire la marcia e sterzare
-			if (sensors.getAngleToTrackAxis() * sensors.getTrackPosition() > 0) {
-				gear = 1;
-				steer = -steer;
-			}
-			clutch = clutching(sensors, clutch);
-			// Costruire una variabile CarControl e restituirla
-			Action action = new Action();
-			action.gear = gear;
-			action.steering = steer;
-			action.accelerate = 1.0;
-			action.brake = 0;
-			action.clutch = clutch;
-			return action;
-		}
-
-		else //Auto non Bloccata
-		{
-			// Calcolo del comando di accelerazione/frenata
-			float accel_and_brake = getAccel(sensors);
-
-			// Calcolare marcia da utilizzare
-			int gear = getGear(sensors);
-
-			// Calcolo angolo di sterzata
-			float steer = getSteer(sensors);
-
-			// Normalizzare lo sterzo
-			if (steer < -1)
-				steer = -1;
-			if (steer > 1)
-				steer = 1;
-
-			// Impostare accelerazione e frenata dal comando congiunto accelerazione/freno
-			float accel, brake;
-			if (accel_and_brake > 0) {
-				accel = accel_and_brake;
-				brake = 0;
-			} else {
-				accel = 0;
-
-				// Applicare l'ABS al freno
-				brake = filterABS(sensors, -accel_and_brake);
-			}
-			clutch = clutching(sensors, clutch);
-
-			// Costruire una variabile CarControl e restituirla
-			Action action = new Action();
-			action.gear = gear;
-			action.steering = steer;
-			action.accelerate = accel;
-			action.brake = brake;
-			action.clutch = clutch;
-			return action;
-		}
+		return azione;
 	}
 
 	private float filterABS(SensorModel sensors, float brake) {
@@ -337,4 +283,43 @@ public class SimpleDriver extends Controller {
 		angles[9] = 0;
 		return angles;
 	}
+
+	private double normalizza(double num, double min, double max){
+		return (num-min)/(max-min);
+	}
+
+	public void saveCSV(SensorModel data) throws IOException {
+
+		try(PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(this.fileName)))){
+
+			if(this.registra) {
+				// Dati dei sensori
+				if(data.getSpeed() >= 0) {
+					pw.append(String.valueOf(this.normalizza(data.getSpeed(), this.minVel, this.maxVel)));
+					pw.append("|");
+				}
+				else {
+					pw.append(String.valueOf(this.normalizza(data.getSpeed(), this.minRetro, this.maxRetro)));
+					pw.append("|");
+				}
+				pw.append(String.valueOf(this.normalizza(data.getAngleToTrackAxis(), this.minAngle, this.maxAngle)));
+				pw.append("|");
+				pw.append(String.valueOf(this.normalizza(data.getTrackEdgeSensors()[0], this.minTrackEdgeSensor, this.maxTrackEdgeSensor)));
+				pw.append("|");
+				pw.append(String.valueOf(this.normalizza(data.getTrackEdgeSensors()[9], this.minTrackEdgeSensor, this.maxTrackEdgeSensor)));
+				pw.append("|");
+				pw.append(String.valueOf(this.normalizza(data.getTrackEdgeSensors()[18], this.minTrackEdgeSensor, this.maxTrackEdgeSensor)));
+				pw.append("|");
+				pw.append(String.valueOf(this.normalizza(data.getTrackPosition(), this.minTrackPosition, this.maxTrackPosition)));
+				pw.append("|");
+				pw.append(String.valueOf(data.getDamage()));
+				pw.append("|");
+			}
+		}
+		finally{
+			System.out.println("Scrittura completata");
+		}
+
+	}
+
 }
